@@ -8,6 +8,19 @@
 		<h1>New Web Project Page</h1> 
 		<video id="videoInput" width="320" height="240"></video>
 		<canvas id="canvasOutput"></canvas>
+		<canvas id="canvasOutputHsv"></canvas>
+		<canvas id="canvasOutputMask"></canvas>
+		<canvas id="canvasOutputBg"></canvas>
+		
+		</br>
+		<h3> Low value</h2>
+		<input type="range">R</input>
+		</br>
+		<input type="range">G</input>
+		</br>
+		<input type="range">B</input>
+		</br>
+		
 		<button onclick="captureImage();">Capture image</button>
 		<button id = "buttonStartPause" onclick="pause();">Pause</button>
 
@@ -33,15 +46,42 @@
 				
 			}
 		
-			function captureImage() {
+			let video, src, hsv, mask, imgBg, cap;
+		
+			function captureImage() {				
 				video = document.getElementById('videoInput');
 				src = new cv.Mat(video.height, video.width, cv.CV_8UC4);
-			 	dst = new cv.Mat(video.height, video.width, cv.CV_8UC1);
+			 	hsv = new cv.Mat(video.height, video.width, cv.CV_8UC1);
+				mask = new cv.Mat(video.height, video.width, cv.CV_8UC1);
+				imgBg = new cv.Mat(video.height, video.width, cv.CV_8UC1);
 				cap = new cv.VideoCapture(video);
-				cap.read(src);
-				cv.cvtColor(src, dst, cv.COLOR_RGBA2GRAY);
-				cv.imshow('canvasOutput', dst);
+				
+				
+				processImage();
 			};
+		
+			const FPS = 30;
+			function processImage(){
+				let begin = Date.now();
+				cap.read(src);
+				
+				cv.cvtColor(src, hsv, cv.COLOR_BGR2HSV);
+				//define range of blue color in HSV
+				let low = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [50, 50, 50, 50]);
+				let high = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [150, 150, 150, 255]);		
+				// Threshold the HSV image to get only blue colors
+				cv.inRange(hsv, low, high, mask);
+				// Bitwise-AND mask and original image
+				cv.bitwise_and(src, src, imgBg, mask);
+				
+				cv.imshow('canvasOutput', src);
+				cv.imshow('canvasOutputHsv', hsv);
+				cv.imshow('canvasOutputMask', mask);
+				cv.imshow('canvasOutputBg', imgBg);
+				
+				let delay = 1000/FPS - (Date.now() - begin);
+				setTimeout(processImage, delay);
+			}
 
 			function onOpenCvReady() {
 				startStreamVideo()
