@@ -14,12 +14,31 @@
 		
 		</br>
 		<h3> Low value</h2>
-		<input type="range">R</input>
+		<input type="range" id="trackbarRMin" value="50" min="0" max="255" step="1" oninput="document.getElementById('trackbarRMinValue').innerHTML = this.value">R</input> <label id="trackbarRMinValue"></label>
 		</br>
-		<input type="range">G</input>
+		<input type="range" id="trackbarGMin" value="50" min="0" max="255" step="1" oninput="document.getElementById('trackbarGMinValue').innerHTML = this.value">G</input> <label id="trackbarGMinValue"></label>
 		</br>
-		<input type="range">B</input>
+		<input type="range" id="trackbarBMin" value="50" min="0" max="255" step="1" oninput="document.getElementById('trackbarBMinValue').innerHTML = this.value">B</input> <label id="trackbarBMinValue"></label>
 		</br>
+		<input type="range" id="trackbarAlphaMin" value="50" min="0" max="255" step="1" oninput="document.getElementById('trackbarAlphaMinValue').innerHTML = this.value">Alpha</input> <label id="trackbarAlphaMinValue"></label>
+		</br>
+		
+		
+		
+		
+		</br>
+		<h3> Max value</h2>
+		<input type="range" id="trackbarRMax" value="50" min="0" max="255" step="1" oninput="document.getElementById('trackbarRMaxValue').innerHTML = this.value">R</input> <label id="trackbarRMaxValue"></label>
+		</br>
+		<input type="range" id="trackbarGMax" value="50" min="0" max="255" step="1" oninput="document.getElementById('trackbarGMaxValue').innerHTML = this.value">G</input> <label id="trackbarGMaxValue"></label>
+		</br>
+		<input type="range" id="trackbarBMax" value="50" min="0" max="255" step="1" oninput="document.getElementById('trackbarBMaxValue').innerHTML = this.value">B</input> <label id="trackbarBMaxValue"></label>
+		</br>
+		<input type="range" id="trackbarAlphaMax" value="50" min="0" max="255" step="1" oninput="document.getElementById('trackbarAlphaMaxValue').innerHTML = this.value">Alpha</input> <label id="trackbarAlphaMaxValue"></label>
+		</br>
+		
+		
+		
 		
 		<button onclick="captureImage();">Capture image</button>
 		<button id = "buttonStartPause" onclick="pause();">Pause</button>
@@ -27,9 +46,30 @@
 		<script src="https://webrtc.github.io/adapter/adapter-5.0.4.js" type="text/javascript"></script>
 		<script src="js/utils.js" type="text/javascript"></script>
 		<script async src="js/opencv.js" onload="onOpenCvReady();" type="text/javascript"></script>
-		<script type="text/javascript">
+		<script type="text/javascript">		
+			let video;
+			let src;
+			let hsv;
+			let mask;
+			let imgBg;
+			let cap;
+			let trackbarRMin = document.getElementById('trackbarRMin');
+			let trackbarGMin = document.getElementById('trackbarGMin');
+			let trackbarBMin = document.getElementById('trackbarBMin');
+			let trackbarAlphaMin = document.getElementById('trackbarAlphaMin');
 			
-			
+			let trackbarRMax = document.getElementById('trackbarRMax');
+			let trackbarGMax = document.getElementById('trackbarGMax');
+			let trackbarBMax = document.getElementById('trackbarBMax');
+			let trackbarAlphaMax = document.getElementById('trackbarAlphaMax');
+		
+			function updateTextInput(id, val) {
+				console.log(id + " "+ val);
+				var1= document.getElementById(id);
+				var1.innerHTML= " " +val; 
+			}
+
+		
 			function pause(){
 				video = document.getElementById('videoInput');
 				buttonStartPause = document.getElementById("buttonStartPause");
@@ -42,44 +82,58 @@
                     buttonStartPause.innerHTML = "Start";
 					video.pause();
                 }
-				
-				
 			}
 		
-			let video, src, hsv, mask, imgBg, cap;
+			
 		
-			function captureImage() {				
+			function captureImage() {
 				video = document.getElementById('videoInput');
+				cap = new cv.VideoCapture(video);
+				processImage();
+			};
+			
+		
+		
+			const FPS = 30;
+			let begin;
+			let low;
+			let hight;
+			let delay;
+			
+			function processImage(){
+				
 				src = new cv.Mat(video.height, video.width, cv.CV_8UC4);
 			 	hsv = new cv.Mat(video.height, video.width, cv.CV_8UC1);
 				mask = new cv.Mat(video.height, video.width, cv.CV_8UC1);
 				imgBg = new cv.Mat(video.height, video.width, cv.CV_8UC1);
-				cap = new cv.VideoCapture(video);
 				
 				
-				processImage();
-			};
-		
-			const FPS = 30;
-			function processImage(){
-				let begin = Date.now();
+				
+				begin = Date.now();
 				cap.read(src);
 				
 				cv.cvtColor(src, hsv, cv.COLOR_BGR2HSV);
 				//define range of blue color in HSV
-				let low = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [50, 50, 50, 50]);
-				let high = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [150, 150, 150, 255]);		
+				low = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [Number(trackbarRMin.value), Number(trackbarGMin.value), Number(trackbarBMin.value), Number(trackbarAlphaMin.value)]);
+				high = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [Number(trackbarRMax.value), Number(trackbarGMax.value), Number(trackbarBMax.value), Number(trackbarAlphaMax.value)]);		
 				// Threshold the HSV image to get only blue colors
 				cv.inRange(hsv, low, high, mask);
 				// Bitwise-AND mask and original image
 				cv.bitwise_and(src, src, imgBg, mask);
 				
 				cv.imshow('canvasOutput', src);
+			
 				cv.imshow('canvasOutputHsv', hsv);
 				cv.imshow('canvasOutputMask', mask);
 				cv.imshow('canvasOutputBg', imgBg);
 				
-				let delay = 1000/FPS - (Date.now() - begin);
+				src.delete();
+				hsv.delete();
+				mask.delete();
+				imgBg.delete();
+				low.delete();
+				high.delete();
+				delay = 1000/FPS - (Date.now() - begin);
 				setTimeout(processImage, delay);
 			}
 
