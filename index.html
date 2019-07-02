@@ -6,6 +6,12 @@
 	</head>
 	<body>
 		<h1>New Web Project Page</h1> 
+		<canvas id="canvasLoadImage" width="320" height="240"></canvas>	
+		<input type="file" id="fileInput" name="file" accept="image/*" />
+		<br/>
+		<button onclick="processPhotograph()">Procesar imagen cargada</button>
+		<br/>
+
 		<video id="videoInput" width="320" height="240"></video>
 		<canvas id="canvasOutput"></canvas>
 		<canvas id="canvasOutputHsv"></canvas>
@@ -14,13 +20,13 @@
 		
 		</br>
 		<h3> Low value</h2>
-		<input type="range" id="trackbarRMin" value="50" min="0" max="255" step="1" oninput="document.getElementById('trackbarRMinValue').innerHTML = this.value">R</input> <label id="trackbarRMinValue"></label>
+		<input type="range" id="trackbarRMin" value="0" min="0" max="255" step="1" oninput="document.getElementById('trackbarRMinValue').innerHTML = this.value">R</input> <label id="trackbarRMinValue"></label>
 		</br>
-		<input type="range" id="trackbarGMin" value="50" min="0" max="255" step="1" oninput="document.getElementById('trackbarGMinValue').innerHTML = this.value">G</input> <label id="trackbarGMinValue"></label>
+		<input type="range" id="trackbarGMin" value="0" min="0" max="255" step="1" oninput="document.getElementById('trackbarGMinValue').innerHTML = this.value">G</input> <label id="trackbarGMinValue"></label>
 		</br>
-		<input type="range" id="trackbarBMin" value="50" min="0" max="255" step="1" oninput="document.getElementById('trackbarBMinValue').innerHTML = this.value">B</input> <label id="trackbarBMinValue"></label>
+		<input type="range" id="trackbarBMin" value="0" min="0" max="255" step="1" oninput="document.getElementById('trackbarBMinValue').innerHTML = this.value">B</input> <label id="trackbarBMinValue"></label>
 		</br>
-		<input type="range" id="trackbarAlphaMin" value="50" min="0" max="255" step="1" oninput="document.getElementById('trackbarAlphaMinValue').innerHTML = this.value">Alpha</input> <label id="trackbarAlphaMinValue"></label>
+		<input type="range" id="trackbarAlphaMin" value="0" min="0" max="255" step="1" oninput="document.getElementById('trackbarAlphaMinValue').innerHTML = this.value">Alpha</input> <label id="trackbarAlphaMinValue"></label>
 		</br>
 		
 		
@@ -28,25 +34,28 @@
 		
 		</br>
 		<h3> Max value</h2>
-		<input type="range" id="trackbarRMax" value="50" min="0" max="255" step="1" oninput="document.getElementById('trackbarRMaxValue').innerHTML = this.value">R</input> <label id="trackbarRMaxValue"></label>
+		<input type="range" id="trackbarRMax" value="255" min="0" max="255" step="1" oninput="document.getElementById('trackbarRMaxValue').innerHTML = this.value">R</input> <label id="trackbarRMaxValue"></label>
 		</br>
-		<input type="range" id="trackbarGMax" value="50" min="0" max="255" step="1" oninput="document.getElementById('trackbarGMaxValue').innerHTML = this.value">G</input> <label id="trackbarGMaxValue"></label>
+		<input type="range" id="trackbarGMax" value="255" min="0" max="255" step="1" oninput="document.getElementById('trackbarGMaxValue').innerHTML = this.value">G</input> <label id="trackbarGMaxValue"></label>
 		</br>
-		<input type="range" id="trackbarBMax" value="50" min="0" max="255" step="1" oninput="document.getElementById('trackbarBMaxValue').innerHTML = this.value">B</input> <label id="trackbarBMaxValue"></label>
+		<input type="range" id="trackbarBMax" value="255" min="0" max="255" step="1" oninput="document.getElementById('trackbarBMaxValue').innerHTML = this.value">B</input> <label id="trackbarBMaxValue"></label>
 		</br>
-		<input type="range" id="trackbarAlphaMax" value="50" min="0" max="255" step="1" oninput="document.getElementById('trackbarAlphaMaxValue').innerHTML = this.value">Alpha</input> <label id="trackbarAlphaMaxValue"></label>
+		<input type="range" id="trackbarAlphaMax" value="255" min="0" max="255" step="1" oninput="document.getElementById('trackbarAlphaMaxValue').innerHTML = this.value">Alpha</input> <label id="trackbarAlphaMaxValue"></label>
 		</br>
 		
 		
 		
 		
-		<button onclick="captureImage();">Capture image</button>
+		<button onclick="captureImage();">Video webcam</button>
 		<button id = "buttonStartPause" onclick="pause();">Pause</button>
 
 		<script src="https://webrtc.github.io/adapter/adapter-5.0.4.js" type="text/javascript"></script>
 		<script src="js/utils.js" type="text/javascript"></script>
 		<script async src="js/opencv.js" onload="onOpenCvReady();" type="text/javascript"></script>
-		<script type="text/javascript">		
+		<script type="text/javascript">	
+			let utils = new Utils('errorMessage');	
+			utils.addFileInputHandlerSetSize('fileInput', 'canvasLoadImage', 320, 240);
+
 			let video;
 			let src;
 			let hsv;
@@ -90,6 +99,41 @@
 				video = document.getElementById('videoInput');
 				cap = new cv.VideoCapture(video);
 				processImage();
+			};
+
+			function processPhotograph() {
+				let src = cv.imread('canvasLoadImage');
+				hsv = new cv.Mat(src.cols, src.rows, cv.CV_8UC1);
+				mask = new cv.Mat(src.cols, src.rows, cv.CV_8UC1);
+				imgBg = new cv.Mat(src.cols, src.rows, cv.CV_8UC1);
+				
+				
+				
+				begin = Date.now();
+				
+				cv.cvtColor(src, hsv, cv.COLOR_BGR2HSV);
+				//define range of blue color in HSV
+				low = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [Number(trackbarRMin.value), Number(trackbarGMin.value), Number(trackbarBMin.value), Number(trackbarAlphaMin.value)]);
+				high = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [Number(trackbarRMax.value), Number(trackbarGMax.value), Number(trackbarBMax.value), Number(trackbarAlphaMax.value)]);		
+				// Threshold the HSV image to get only blue colors
+				cv.inRange(hsv, low, high, mask);
+				// Bitwise-AND mask and original image
+				cv.bitwise_and(src, src, imgBg, mask);
+				
+				cv.imshow('canvasOutput', src);
+			
+				cv.imshow('canvasOutputHsv', hsv);
+				cv.imshow('canvasOutputMask', mask);
+				cv.imshow('canvasOutputBg', imgBg);
+				
+				src.delete();
+				hsv.delete();
+				mask.delete();
+				imgBg.delete();
+				low.delete();
+				high.delete();
+				delay = 1000/FPS - (Date.now() - begin);
+				setTimeout(processPhotograph, delay);
 			};
 			
 		

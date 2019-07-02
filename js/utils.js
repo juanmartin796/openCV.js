@@ -61,6 +61,19 @@ function Utils(errorOutputId) { // eslint-disable-line no-unused-vars
         img.src = url;
     };
 
+    this.loadImageToCanvasSize = function(url, cavansId, width, height) {
+        let canvas = document.getElementById(cavansId);
+        let ctx = canvas.getContext('2d');
+        let img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = function() {
+            canvas.width = width;
+            canvas.height = height;
+            ctx.drawImage(img, 0, 0, width, height);
+        };
+        img.src = url;
+    };
+
     this.executeCode = function(textAreaId) {
         try {
             this.clearError();
@@ -113,6 +126,17 @@ function Utils(errorOutputId) { // eslint-disable-line no-unused-vars
             if (files.length > 0) {
                 let imgUrl = URL.createObjectURL(files[0]);
                 self.loadImageToCanvas(imgUrl, canvasId);
+            }
+        }, false);
+    };
+
+    this.addFileInputHandlerSetSize = function(fileInputId, canvasId, widht, height) {
+        let inputElement = document.getElementById(fileInputId);
+        inputElement.addEventListener('change', (e) => {
+            let files = e.target.files;
+            if (files.length > 0) {
+                let imgUrl = URL.createObjectURL(files[0]);
+                self.loadImageToCanvasSize(imgUrl, canvasId, widht, height);
             }
         }, false);
     };
